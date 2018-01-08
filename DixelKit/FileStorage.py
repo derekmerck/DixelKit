@@ -2,18 +2,21 @@ import os
 import magic  # Requires `brew install libmagic` on OSX
 import dicom
 import itertools
+from hashlib import sha1
 
-from DixelStore import *
-from DixelTools import orthanc_id
+from Dixel import *
+from DixelStorage import *
+import DixelTools
+from Orthanc import Orthanc
 
-class FileDirectory(DixelStore):
+class FileStorage(DixelStorage):
 
     def __init__(self,
                  loc,
                  cache_policy=CachePolicy.USE_CACHE):
         self.loc = loc
         cache_pik = "{0}.pik".format(sha1(self.loc).hexdigest()[0:8])
-        super(FileDirectory, self).__init__(cache_pik=cache_pik, cache_policy=cache_policy)
+        super(FileStorage, self).__init__(cache_pik=cache_pik, cache_policy=cache_policy)
 
     # Mapping from orthanc file_uuid's to directory paths
     def orthanc_path(self, file_uuid):
@@ -42,7 +45,7 @@ class FileDirectory(DixelStore):
 
             preinventory.add(Dixel(id, meta=meta))
 
-        self.logger.debug(preinventory)
+        # self.logger.debug(preinventory)
 
         return preinventory
 
@@ -65,7 +68,7 @@ class FileDirectory(DixelStore):
         if magic_type == 'application/dicom':
 
             tags = dicom.read_file(dixel.meta['full_path'])
-            # self.logger.debug(tags)
+            self.logger.debug(tags)
 
             PatientID         = tags[0x0010, 0x0020].value
             StudyInstanceUID  = tags[0x0020, 0x000d].value
@@ -76,13 +79,13 @@ class FileDirectory(DixelStore):
 
             self.logger.debug('{0} ({1}) id: {2}'.format(dixel.meta['fn'], magic_type, id))
 
-            return Dixel(id, meta=dixel.meta)
+            return Dixel(id, meta=dixel.meta, level=DicomLevel.INSTANCES)
 
 
     def copy(self, dixel, dest):
         # May have various tasks to do, like anonymize or compress
 
-        if type(dest) == Orthanc and dixel.level == DicomLevel.INSTANCE:
+        if type(dest) == Orthanc and dixel.level == DicomLevel.INSTANCES:
             with open(dixel.meta['full_path'], "rb") as f:
                 dixel.data['file'] = f.read()
             dest.put(dixel)

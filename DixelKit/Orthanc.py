@@ -1,13 +1,17 @@
 import requests
 from requests import ConnectionError
+from hashlib import sha1
+from pprint import pformat
+from Dixel import *
+from DixelStorage import *
+import DixelTools
+from Splunk import Splunk
 
-from Storage import *
-
-class Orthanc(DixelStore):
+class Orthanc(DixelStorage):
 
     def __init__(self,
                  host,
-                 port,
+                 port=8042,
                  user=None,
                  password=None,
                  cache_policy=CachePolicy.NONE,
@@ -20,9 +24,12 @@ class Orthanc(DixelStore):
         cache_pik = "{0}.pik".format(sha1("{0}:{1}@{2}".format(user, password, self.url)).hexdigest()[0:8])
         super(Orthanc, self).__init__(cache_pik=cache_pik, cache_policy=cache_policy)
 
+    def get(self, dixel):
+        raise NotImplementedError
+
     def put(self, dixel):
 
-        if dixel.level != DicomLevel.INSTANCE:
+        if dixel.level != DicomLevel.INSTANCES:
             raise NotImplementedError("Orthanc can only put dixel instances")
 
         headers = {'content-type': 'application/dicom'}
@@ -35,6 +42,18 @@ class Orthanc(DixelStore):
             self.logger.warning('Could not add {0}!'.format(dixel))
 
         self.logger.debug(pformat(r.json()))
+
+    def delete(self, dixel):
+        url = "{}/{}/{}".format(self.url, str(dixel.level), dixel.id)
+        r = self.session.delete(url)
+
+        if r.status_code == 200:
+            self.logger.debug('Removed {0} successfully!'.format(dixel))
+        else:
+            self.logger.warning('Could not delete {0}!'.format(dixel))
+
+        self.logger.debug(pformat(r.json()))
+
 
     def copy(self, dixel, dest):
         # May have various tasks to do, like anonymize or compress
@@ -58,7 +77,10 @@ class Orthanc(DixelStore):
         res = set()
         r = self.session.get("{0}/instances".format(self.url)).json()
         for item in r:
-            res.add(Dixel(id=item))
+            res.add(Dixel(id=item, level=DicomLevel.INSTANCES))
+
+        self.logger.debug(res)
+
         return res
 
 
@@ -122,7 +144,7 @@ class OrthancProxy(Orthanc):
                 meta = {'qid': qid,
                         'aid': aid}
 
-                dixel.children.append(Dixel(id, level=DicomLevel.STUDY, meta=meta))
+                dixel.children.append(Dixel(id, level=DicomLevel.STUDIES, meta=meta))
 
             dixel.meta['qid'] = qid
 

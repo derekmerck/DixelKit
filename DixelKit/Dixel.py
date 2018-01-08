@@ -1,9 +1,10 @@
-from aenum import Enum, auto, IntEnum
+from aenum import Enum, auto
+
 class DicomLevel(Enum):
-    INSTANCE = auto()
-    SERIES = auto()
-    STUDY = auto()
-    PATIENT = auto()
+    INSTANCES = auto()
+    SERIES    = auto()
+    STUDIES   = auto()
+    PATIENTS  = auto()
 
     def __str__(self):
         return '{0}'.format(self.name.lower())
@@ -15,7 +16,7 @@ class Dixel(object):
                         tags = None,
                         meta = None,
                         data = None,
-                        level = DicomLevel.INSTANCE):
+                        level = DicomLevel.INSTANCES):
 
         self.id    = id            # orthanc-type id
         self.tags  = tags or {}    # Simplified tags per orthanc
