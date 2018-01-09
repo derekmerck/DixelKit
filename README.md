@@ -17,6 +17,7 @@
 #
 # A DixelStore is an inventory of dixels that supports CRUD access.
 
+J2K Transfer Syntax:  1.2.840.10008.1.2.4.90
 
 ``````
 DIANA

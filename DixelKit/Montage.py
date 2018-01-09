@@ -1,13 +1,10 @@
 import requests
-import logging
 from pprint import pformat
-
 from Dixel import *
 from DixelStorage import *
 
+
 class Montage(DixelStorage):
-
-
 
     def __init__(self, host, port=80, user=None, password=None):
 
@@ -56,10 +53,10 @@ def test_montage():
 
     montage = Montage('montage', 80, 'm_user', 'passw0rd')
 
-    qdict = {"q": "cta",
-             "modality": 4,
-             "exam_type": [8683, 7713, 8766],
-             "start_date": "2016-11-17",
-             "end_date": "2016-11-19"}
+    qdict = { "q":          "cta",
+              "modality":   4,
+              "exam_type":  [8683, 7713, 8766],
+              "start_date": "2016-11-17",
+              "end_date":   "2016-11-19"}
 
     worklist = montage.make_worklist(qdict)

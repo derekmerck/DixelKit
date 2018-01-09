@@ -1,4 +1,5 @@
 import logging
+from pprint import pformat
 from DixelKit.DixelStorage import CachePolicy
 from DixelKit.FileStorage import FileStorage
 from DixelKit.Orthanc import Orthanc, OrthancProxy
@@ -8,24 +9,65 @@ from DixelKit import DixelTools
 
 def test_mirror():
 
-    # Caches by default
+    # Caches inventory by default
     file_dir = FileStorage("/users/derek/Desktop/Protect3/80", cache_policy=CachePolicy.USE_CACHE)
-    assert( len(file_dir.inventory) == 118 )
+    assert( len(file_dir.inventory) == 119 )
 
     # No caching by default
     orthanc = Orthanc('localhost', 8042)
+
     orthanc.delete_inventory()
-    assert( len(orthanc.inventory) == 0)
+    assert( len(orthanc.inventory) == 0 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+    assert( s["TotalDiskSizeMB"] == 0 )
+
+    # Size should be 0
 
     # Upload whatever is missing
     copied = file_dir.copy_inventory(orthanc)
     logging.debug(copied)
-    assert( copied == 118 )
+    assert( copied == 119 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+    assert( s["TotalDiskSizeMB"] > 60 )
+
+    # Size should be about 65MB
 
     # Upload whatever is missing
     copied = file_dir.copy_inventory(orthanc, lazy=True)
     logging.debug(copied)
     assert( copied == 0 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+
+    # Set this orthanc to prefer compressed data
+    orthanc.prefer_compressed = True
+    orthanc.delete_inventory()
+    assert( len(orthanc.inventory) == 0 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+
+    # Size should be 0
+
+    # Upload whatever is missing
+    copied = file_dir.copy_inventory(orthanc)
+    logging.debug(copied)
+    assert( copied == 119 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+    assert( s["TotalDiskSizeMB"] < 20 )
+
+    # Size should be less than uncompressed (65)
+
+    # Confirm compressed has same id as uncompressed
+    orthanc.prefer_compressed = False
+    copied = file_dir.copy_inventory(orthanc, lazy=True)
+    logging.debug(copied)
+    assert( copied == 0 )
+    s = orthanc.statistics()
+    logging.debug(pformat(s))
+
 
     # At this point, the original attachment is MOOT, I believe
 

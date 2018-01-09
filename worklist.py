@@ -10,7 +10,7 @@ Given a worklist with PatientID and ReferenceTime:
 """
 
 import csv
-from daterange import daterange
+from DixelKit.DixelTools import daterange
 import logging
 from pprint import pformat
 
@@ -153,15 +153,21 @@ class Worklist(object):
             if id:
                 source.send_item(peer, id)
 
+import yaml
 
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
+    with open("secrets.yml", 'r') as f:
+        secrets = yaml.load(f)
 
-    splunk =  Splunk("cirr0", 8089, "admin", "splunk")
-    montage = Montage("montage", "DMERCK", "gOUF7zaoRg{t,JD6")
-    archive = Orthanc("cirr1", 42800, "orthanc", "cirr!passw0rd")
-    proxy =   Orthanc("deathstar", 8042, "derek", "3dlab")
+    splunk =  Splunk(**secrets['services']['splunk'])
+    montage = Montage(**secrets['services']['montage'])
+    archive = Orthanc(**secrets['services']['cirr1'])
+    proxy =   Orthanc(**secrets['services']['deathstar'])
+
+    exit()
+
 
     # worklist = Worklist(fn="/Users/derek/Desktop/elvos.csv", delta="-1d")
     # worklist.update(splunk, desc="*cta*")

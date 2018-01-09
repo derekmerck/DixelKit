@@ -3,6 +3,7 @@ import os
 import logging
 from aenum import IntEnum
 
+
 # Set this to something else to store cache files elsewhere
 TMP_CACHE_DIR = "/tmp"
 

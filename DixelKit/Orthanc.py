@@ -7,6 +7,7 @@ from DixelStorage import *
 import DixelTools
 from Splunk import Splunk
 
+
 class Orthanc(DixelStorage):
 
     def __init__(self,
@@ -15,20 +16,28 @@ class Orthanc(DixelStorage):
                  user=None,
                  password=None,
                  cache_policy=CachePolicy.NONE,
+                 prefer_compressed=False,
                  peer_name=None):
         self.session = requests.session()
         if user and password:
             self.session.auth = (user, password)
         self.url = "http://{host}:{port}".format(host=host, port=port)
+        self.prefer_compressed = prefer_compressed
         self.peer_name = peer_name
-        cache_pik = "{0}.pik".format(sha1("{0}:{1}@{2}".format(user, password, self.url)).hexdigest()[0:8])
+        cache_pik = "{0}.pik".format(
+                sha1("{0}:{1}@{2}".format(
+                user, password, self.url)).hexdigest()[0:8])
         super(Orthanc, self).__init__(cache_pik=cache_pik, cache_policy=cache_policy)
+
+    def statistics(self):
+        url = "{0}/statistics".format(self.url)
+        r = self.session.get(url)
+        return r.json()
 
     def get(self, dixel):
         raise NotImplementedError
 
     def put(self, dixel):
-
         if dixel.level != DicomLevel.INSTANCES:
             raise NotImplementedError("Orthanc can only put dixel instances")
 

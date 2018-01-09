@@ -1,8 +1,13 @@
+# Requirements:
+#    gdcm for compression       `brew install gdcm` on OSX
+#    libmagic for file typing   `brew install libmagic` on OSX
+
 import os
-import magic  # Requires `brew install libmagic` on OSX
+import magic
 import dicom
 import itertools
 from hashlib import sha1
+import subprocess
 
 from Dixel import *
 from DixelStorage import *
@@ -70,24 +75,54 @@ class FileStorage(DixelStorage):
             tags = dicom.read_file(dixel.meta['full_path'])
             self.logger.debug(tags)
 
-            PatientID         = tags[0x0010, 0x0020].value
-            StudyInstanceUID  = tags[0x0020, 0x000d].value
-            SeriesInstanceUID = tags[0x0020, 0x000e].value
-            SOPInstanceUID    = tags[0x0008, 0x0018].value
+            meta = { 'PatientID'         : tags[0x0010, 0x0020].value,
+                     'StudyInstanceUID'  : tags[0x0020, 0x000d].value,
+                     'SeriesInstanceUID' : tags[0x0020, 0x000e].value,
+                     'SOPInstanceUID'    : tags[0x0008, 0x0018].value,
+                     'TransferSyntaxUID' : tags.file_meta.TransferSyntaxUID,
+                     'AccessionNumber'   : tags[0x0008, 0x0050].value,
+                     'HasPixels'         : 'PixelData' in tags
+                    }
 
-            id = DixelTools.orthanc_id(PatientID, StudyInstanceUID, SeriesInstanceUID, SOPInstanceUID)
+            meta['id'] = DixelTools.orthanc_id(meta['PatientID'],
+                                       meta['StudyInstanceUID'],
+                                       meta['SeriesInstanceUID'],
+                                       meta['SOPInstanceUID'])
+
+            # Keep other meta data, such as file path
+            meta.update(dixel.meta)
 
             self.logger.debug('{0} ({1}) id: {2}'.format(dixel.meta['fn'], magic_type, id))
 
-            return Dixel(id, meta=dixel.meta, level=DicomLevel.INSTANCES)
+            return Dixel(meta['id'], meta=meta, level=DicomLevel.INSTANCES)
 
 
     def copy(self, dixel, dest):
         # May have various tasks to do, like anonymize or compress
 
         if type(dest) == Orthanc and dixel.level == DicomLevel.INSTANCES:
-            with open(dixel.meta['full_path'], "rb") as f:
-                dixel.data['file'] = f.read()
+
+            # Also check to confirm that this instance has pixels (not an SR) and is VR
+            if dest.prefer_compressed and \
+                    dixel.meta['HasPixels'] and \
+                    "VR" in str(dixel.meta['TransferSyntaxUID']):
+
+                self.logger.debug('Compressing {}'.format(dixel.meta['fn']))
+
+                # Compress w gdcm
+                full_pathz = "/tmp/{}.compressed".format(dixel.meta['fn'])
+                subprocess.call(['gdcmconv', '-U', '--j2k', dixel.meta['full_path'], full_pathz])
+                with open(full_pathz, "rb") as f:
+                    dixel.data['file'] = f.read()
+                os.remove(full_pathz)
+
+            else:
+
+                self.logger.debug('NOT compressing {}'.format(dixel.meta['fn']))
+
+                with open(dixel.meta['full_path'], "rb") as f:
+                    dixel.data['file'] = f.read()
+
             dest.put(dixel)
             dixel.data['file'] = None  # Clear data
 
