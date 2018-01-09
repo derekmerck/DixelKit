@@ -1,0 +1,6 @@
+pydicom
+dateutils
+pyyaml
+python-magic
+requests
+splunk-sdk
