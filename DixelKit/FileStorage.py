@@ -92,7 +92,7 @@ class FileStorage(DixelStorage):
             # Keep other meta data, such as file path
             meta.update(dixel.meta)
 
-            self.logger.debug('{0} ({1}) id: {2}'.format(dixel.meta['fn'], magic_type, id))
+            self.logger.debug('{0} ({1}) id: {2}'.format(dixel.meta['fn'], magic_type, meta['id']))
 
             return Dixel(meta['id'], meta=meta, level=DicomLevel.INSTANCES)
 

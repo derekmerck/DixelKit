@@ -1,22 +1,26 @@
 # DixelKit
 
-Derek Merck <derek_merck@brown.edu>
+Derek Merck <derek_merck@brown.edu>  
 Winter 2018
 
 <https://www.github.com/derekmerck/DixelKit>
 
-DICOM image objects may be represented in _many_ different ways across DIANA:
-as .dcm files, as URLs in Orthanc, as tag data in Splunk.  A range of data and
-metadata, including pixels, text reports, and procedure variables may be
-associated with studies. And study data may be built-up incrementally from
-multiple sources, creating incomplete DICOM-like structures.
+DICOM image objects may be represented in _many_ different ways across
+[DIANA](https//www.github.com/derekmerck/DIANA)):  as `.dcm` files, as URLs 
+in [Orthanc][], as tag data in [Splunk][].  A range of data and metadata, 
+including pixels, text reports, and procedure variables may be associated
+with studies. And study data may be built-up incrementally from multiple
+sources, creating incomplete DICOM-like structures.
+
+[Orthanc]: http://www.orthanc-server.com
+[Splunk]:  http://www.splunk.com
 
 DixelKit is a more generic and accessible toolkit for working with collections
 of such medical imaging related data and metadata.
 
-Dixel is a portmanteau for a "DICOM element" (or "DIANA element", a la pixel or
-voxel.) Pre-dixels are incomplete dixels, usually without enough information to 
-assign a unique orthanc-style id.  
+Dixel is a portmanteau for a "DICOM element" (or "DIANA element", a la pixel
+or voxel.) Pre-dixels are incomplete dixels, usually without enough information
+to assign a unique orthanc-style id.  
 
 A DixelStorage is an inventory of dixels that supports CRUD access (put, 
 read/get/copy, update, delete).  Implemented DixelStorages include: `.dcm` files,
@@ -36,17 +40,18 @@ Orthanc (open source PACS), Splunk (meta data index), and Montage (report text)
 - [python-magic](https://github.com/ahupp/python-magic)
 - [requests](http://docs.python-requests.org/en/master/)
 - [splunk-sdk](http://dev.splunk.com/python)
+- [aenum](https://bitbucket.org/stoneleaf/aenum)
 
 
 ### External requirements
 
-- `gdcm` for DICOM file pixel compression  
+- [Grassroots DICOM][] (`gdcm`) for DICOM file pixel compression  
   `brew install gdcm` on OSX  
-  `apt-get install gcdm` on Debian, etc.
-- `libmagic` for file typing  
-  `brew install libmagic` on OSX  
-  `apt-get install libmagic` on Debian, etc.
+  `apt-get install gcdm` on Debian **
+- File magic (`libmagic`) for file typing  
+  `brew install libmagic` on OSX  (typically pre-installed on Linux)
 
+[Grassroots DICOM]: http://gdcm.sourceforge.net/wiki/index.php/Main_Page
 
 ## Usage
 
@@ -115,3 +120,18 @@ password: passw0rd
 ## License
 
 MIT
+
+---
+
+** GDCM has no rpm available for RedHat 6, but can be compiled following <http://gdcm.sourceforge.net/wiki/index.php/Compilation> and <https://raw.githubusercontent.com/malaterre/GDCM/master/INSTALL.txt>
+```bash
+$ yum install cmake3 g++
+$ git clone https://github.com/malaterre/GDCM
+$ cd GDCM
+$ mkdir build
+$ cd build
+$ cmake3 -D GDCM_BUILD_APPLICATIONS=true ..
+$ make
+$ make install
+```
+
