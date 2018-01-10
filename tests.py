@@ -7,6 +7,13 @@ from DixelKit.Montage import Montage
 from DixelKit.Splunk import Splunk
 from DixelKit import DixelTools
 
+def test_indexer():
+
+    orthanc = Orthanc('localhost', 8042)
+    splunk = Splunk('localhost', 8089, 'admin', 'changeme')
+    orthanc.copy_inventory(splunk, lazy=True)
+
+
 def test_mirror():
 
     # Caches inventory by default

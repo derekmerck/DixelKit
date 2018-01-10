@@ -5,6 +5,8 @@ from dateutil import parser as dateutil_parser
 import re
 from Dixel import *
 
+from StructuredTags import simplify_tags
+
 def load_csv(self, csv_file, secondary_id):
     s = set()
     if csv_file:
@@ -95,6 +97,10 @@ def test_hashing():
     id = orthanc_id(ptid, stuid, seruid, instuid)
     correct=  "c3a46d9f-20409d48-aee91522-34e3e1e9-958f34b2"
     assert( id==correct )
+
+
+
+
 
 if __name__=="__main__":
     logging.basicConfig(level=logging.DEBUG)

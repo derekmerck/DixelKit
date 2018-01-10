@@ -63,6 +63,24 @@ class Orthanc(DixelStorage):
 
         self.logger.debug(pformat(r.json()))
 
+    def update(self, dixel):
+
+        meta = dixel.meta.copy()
+
+        url = "{}/{}/{}/tags?simplify".format(self.url, str(dixel.level), dixel.id)
+        r = self.session.get(url)
+
+        tags = r.json()
+        tags = DixelTools.simplify_tags(tags)
+
+        meta.update(tags)
+
+        url = "{}/{}/{}/metadata/TransferSyntaxUID".format(self.url, str(dixel.level), dixel.id)
+        r = self.session.get(url)
+        meta['TransferSyntaxUID'] = r.json()
+
+        return Dixel(dixel.id, meta=meta, level=dixel.level)
+
 
     def copy(self, dixel, dest):
         # May have various tasks to do, like anonymize or compress
@@ -73,6 +91,7 @@ class Orthanc(DixelStorage):
             self.session.post(url, data=dixel.id)
 
         elif type(dest) == Splunk:
+            dixel = self.update(dixel)  # Add available data and meta data, parse
             dest.put(dixel)
 
         else:

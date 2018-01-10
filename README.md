@@ -31,6 +31,10 @@ Orthanc (open source PACS), Splunk (meta data index), and Montage (report text)
 
 `$ pip install http://github.com/derekmerck/DixelKit`
 
+or 
+
+`$ git clone http://github.com/derekmerck/DixelKit`
+
 
 ### Python package requirements
 
