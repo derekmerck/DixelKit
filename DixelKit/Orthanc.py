@@ -112,7 +112,7 @@ class Orthanc(DixelStorage):
         for item in r:
             res.add(Dixel(id=item, level=DicomLevel.INSTANCES))
 
-        self.logger.debug(res)
+        # self.logger.debug(res)
 
         return res
 
