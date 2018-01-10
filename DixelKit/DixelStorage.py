@@ -123,11 +123,11 @@ class DixelStorage(object):
     def copy_worklist(self, dest, worklist, lazy=False):
 
         if lazy:
-            logging.debug("All src:  {0} dixels\n   {1}".format(len(worklist), sorted(worklist)))
-            logging.debug("All dest: {0} dixels\n   {1}".format(
-                len(dest.inventory), sorted(dest.inventory)))
+            # logging.debug("All src:  {0} dixels\n   {1}".format(len(worklist), sorted(worklist)))
+            # logging.debug("All dest: {0} dixels\n   {1}".format(
+            #     len(dest.inventory), sorted(dest.inventory)))
             worklist = worklist - dest.inventory
-            logging.debug("Lazy:     {0} dixels\n   {1}".format(len(worklist), sorted(worklist)))
+            # logging.debug("Lazy:     {0} dixels\n   {1}".format(len(worklist), sorted(worklist)))
 
         count = 0
         for dixel in worklist:
