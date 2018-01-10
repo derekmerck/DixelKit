@@ -8,8 +8,9 @@ from Dixel import *
 from StructuredTags import simplify_tags
 
 DICOM_SOPS = {
-    '1.2.840.10008.5.1.4.1.1.88.67': 'X-Ray Radiation Dose SR',
-    '1.2.840.10008.5.1.4.1.1.2':     'CT Image Storage'
+    '1.2.840.10008.5.1.4.1.1.2':     'CT Image Storage',
+    '1.2.840.10008.5.1.4.1.1.88.67': 'X-Ray Radiation Dose SR',             # Can't compress
+    '1.2.840.10008.5.1.4.1.1.7':     'Secondary Capture Image Storage'      # Can't compress
 }
 
 

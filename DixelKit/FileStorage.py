@@ -80,6 +80,7 @@ class FileStorage(DixelStorage):
                      'SeriesInstanceUID' : tags[0x0020, 0x000e].value,
                      'SOPInstanceUID'    : tags[0x0008, 0x0018].value,
                      'TransferSyntaxUID' : tags.file_meta.TransferSyntaxUID,
+                     'MediaStorage'      : tags.file_meta.MediaStorage,
                      'AccessionNumber'   : tags[0x0008, 0x0050].value,
                      'HasPixels'         : 'PixelData' in tags
                     }
@@ -105,7 +106,9 @@ class FileStorage(DixelStorage):
             # Also check to confirm that this instance has pixels (not an SR) and is VR
             if dest.prefer_compressed and \
                     dixel.meta['HasPixels'] and \
-                    "VR" in str(dixel.meta['TransferSyntaxUID']):
+                    "VR" in str(dixel.meta['TransferSyntaxUID']) and \
+                    "SR" not in str(dixel.meta['MediaStorage']) and \
+                    "Secondary" not in str(dixel.meta['MediaStorage']):
 
                 self.logger.debug('Compressing {}'.format(dixel.meta['fn']))
 
