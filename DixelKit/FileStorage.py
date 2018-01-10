@@ -80,7 +80,7 @@ class FileStorage(DixelStorage):
                      'SeriesInstanceUID' : tags[0x0020, 0x000e].value,
                      'SOPInstanceUID'    : tags[0x0008, 0x0018].value,
                      'TransferSyntaxUID' : tags.file_meta.TransferSyntaxUID,
-                     'MediaStorage'      : tags.file_meta.MediaStorage,
+                     'MediaStorage'      : tags.file_meta.MediaStorageSOPClassUID,
                      'AccessionNumber'   : tags[0x0008, 0x0050].value,
                      'HasPixels'         : 'PixelData' in tags
                     }
