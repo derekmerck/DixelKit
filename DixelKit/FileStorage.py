@@ -73,7 +73,7 @@ class FileStorage(DixelStorage):
         if magic_type == 'application/dicom':
 
             tags = dicom.read_file(dixel.meta['full_path'])
-            self.logger.debug(tags)
+            # self.logger.debug(tags)
 
             meta = { 'PatientID'         : tags[0x0010, 0x0020].value,
                      'StudyInstanceUID'  : tags[0x0020, 0x000d].value,

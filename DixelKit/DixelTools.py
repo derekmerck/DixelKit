@@ -7,6 +7,12 @@ from Dixel import *
 
 from StructuredTags import simplify_tags
 
+DICOM_SOPS = {
+    '1.2.840.10008.5.1.4.1.1.88.67': 'X-Ray Radiation Dose SR',
+    '1.2.840.10008.5.1.4.1.1.2':     'CT Image Storage'
+}
+
+
 def load_csv(self, csv_file, secondary_id):
     s = set()
     if csv_file:

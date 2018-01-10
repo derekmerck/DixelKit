@@ -79,6 +79,11 @@ class Orthanc(DixelStorage):
         r = self.session.get(url)
         meta['TransferSyntaxUID'] = r.json()
 
+        url = "{}/{}/{}/metadata/SopClassUid".format(self.url, str(dixel.level), dixel.id)
+        r = self.session.get(url)
+        meta['SOPClassUID'] = DixelTools.DICOM_SOPS.get(r.json(), r.json())  # Text or return val
+
+
         return Dixel(dixel.id, meta=meta, level=dixel.level)
 
 
