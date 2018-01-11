@@ -51,7 +51,7 @@ or
 
 - [Grassroots DICOM][] (`gdcm`) for DICOM file pixel compression  
   `brew install gdcm` on OSX  
-  `apt-get install gcdm` on Debian **
+  `apt-get install libgcdm-tools` on Debian **
 - File magic (`libmagic`) for file typing  
   `brew install libmagic` on OSX  (typically pre-installed on Linux)
 

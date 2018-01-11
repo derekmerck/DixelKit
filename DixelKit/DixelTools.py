@@ -9,12 +9,21 @@ from StructuredTags import simplify_tags
 
 DICOM_SOPS = {
     '1.2.840.10008.5.1.4.1.1.2':     'CT Image Storage',
+    '1.2.840.10008.5.1.4.1.1.88.22': 'Enhanced SR',
     '1.2.840.10008.5.1.4.1.1.88.67': 'X-Ray Radiation Dose SR',             # Can't compress
     '1.2.840.10008.5.1.4.1.1.7':     'Secondary Capture Image Storage'      # Can't compress
 }
 
+DICOM_TRANSFERSYNTAX_UID = {
+    '1.2.840.10008.1.2':	        'Implicit VR Endian: Default Transfer Syntax for DICOM',
+    '1.2.840.10008.1.2.1':	        'Explicit VR Little Endian',
+    '1.2.840.10008.1.2.1.99':	    'Deflated Explicit VR Little Endian',
+    '1.2.840.10008.1.2.2':	        'Explicit VR Big Endian',
+    '1.2.840.10008.1.2.4.90':       'JPEG 2000 Image Compression (Lossless Only)'
+}
 
-def load_csv(self, csv_file, secondary_id):
+
+def load_csv(csv_file, secondary_id):
     s = set()
     if csv_file:
         with open(csv_file, 'rU') as f:
@@ -32,8 +41,21 @@ def load_csv(self, csv_file, secondary_id):
 
     return s
 
-def save_csv(cls, csv_file, worklist):
-    pass
+def save_csv(csv_file, worklist):
+
+    with open(csv_file, "w") as fp:
+
+        fieldnames=set()
+        for item in worklist:
+            fieldnames.update(item.meta.keys())
+
+        writer = csv.DictWriter(fp,
+                                fieldnames=fieldnames,
+                                extrasaction='ignore')
+        writer.writeheader()
+
+        for item in worklist:
+            writer.writerow(item.meta)
 
 """
 Patients are identified as the SHA-1 hash of their PatientID tag (0010,0020).

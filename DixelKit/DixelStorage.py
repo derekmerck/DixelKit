@@ -34,9 +34,9 @@ class DixelStorage(object):
                  cache_policy=CachePolicy.NONE):
         self.logger = logging.getLogger()
         self.cache = {}
-        self.cache_pik = os.path.join(TMP_CACHE_DIR, cache_pik)
         self.cache_policy = cache_policy
-
+        if cache_pik:
+            self.cache_pik = os.path.join(TMP_CACHE_DIR, cache_pik)
         if cache_pik and cache_policy == CachePolicy.CLEAR_AND_USE_CACHE:
             if os.path.exists(self.cache_pik):
                 os.remove(self.cache_pik)
@@ -54,7 +54,7 @@ class DixelStorage(object):
     def copy(self, dixel, destination):
         raise NotImplementedError
 
-    def update(self, dixel):
+    def update(self, dixel, **kwargs):
         raise NotImplementedError
 
     # Anything that you want to cache can be accessed with a "var" property
@@ -136,10 +136,10 @@ class DixelStorage(object):
 
         return count
 
-    def update_worklist(self, worklist):
+    def update_worklist(self, worklist, **kwargs):
         res = set()
         for dixel in worklist:
-            u = self.update(dixel)
+            u = self.update(dixel, **kwargs)
             if u:
                 res.add(u)
         return res

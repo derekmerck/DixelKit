@@ -2,6 +2,7 @@ import requests
 from pprint import pformat
 from Dixel import *
 from DixelStorage import *
+import DixelTools
 
 
 class Montage(DixelStorage):
@@ -21,12 +22,71 @@ class Montage(DixelStorage):
         url = "{0}/index/{1}/search".format(self.url, index)
         r = self.session.get(url, params=qdict)
 
-        self.logger.debug(pformat(r))
+        # self.logger.debug(pformat(r))
         return r.json()["objects"]
 
-    def update(self, dixel):
-        pass
-        # Make a qdict for this dixel
+    # Assumes an AccessionNumber or PatientID and ReferenceTime field
+    # Finds a MID (MontageID) if possible and fills in other patient and report data
+    def update(self, dixel, time_delta=0):
+
+        # if dixel.meta['mid']:
+        #     # Already looked this exam up
+        #     return dixel
+
+        qdict = {}
+
+        PatientID = dixel.meta['PatientID']
+        earliest, latest = DixelTools.daterange(dixel.meta['ReferenceTime'], time_delta)
+        AccessionNumber = None
+
+        q = PatientID
+        if dixel.meta.get("AccessionNumber"):
+            AccessionNumber = dixel.meta["AccessionNumber"]
+            q = q + "+" + AccessionNumber
+
+        qdict["q"] = q
+        qdict["start_date"] = earliest
+        qdict["end_date"] = latest
+
+        r = self.query(qdict)
+
+        # Got some hits
+        if r:
+
+            self.logger.debug(pformat(r))
+            data = None
+
+            if AccessionNumber:
+                # Check and see if there is a match in r
+                found = False
+                for r_item in r:
+                    if r_item["accession_number"] == AccessionNumber:
+                        # Use this data
+                        data = r_item
+                        found = True
+                        break
+                if found == False:
+                    self.logger.warning(
+                        "Can't find Accession {0} in results!".format(AccessionNumber))
+                    return dixel
+            else:
+                # If there is no AN, just use the first study returned
+                data = r[0]
+
+            dixel.meta["Age"]             = data["patient_age"]
+            dixel.meta["First Name"]      = data["patient_first_name"].capitalize()
+            dixel.meta["Last Name"]       = data["patient_last_name"].capitalize()
+            dixel.meta["AccessionNumber"] = data["accession_number"]
+            dixel.meta["MID"]             = data["id"]                  # Montage ID
+            dixel.meta["Report"]          = data['text']                # Report text
+            dixel.meta["ExamCode"]        = data['exam_type']['code']   # IMG code
+
+            return Dixel(id=AccessionNumber, meta=dixel.meta, level=DicomLevel.STUDIES)
+
+        # No results
+        else:
+            return dixel
+
 
     def make_worklist(self, qdict):
         # Return a set of predixel results
