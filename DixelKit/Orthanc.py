@@ -17,7 +17,8 @@ class Orthanc(DixelStorage):
                  password=None,
                  cache_policy=CachePolicy.NONE,
                  prefer_compressed=False,
-                 peer_name=None):
+                 peer_name=None,
+                 **kwargs):
         self.session = requests.session()
         if user and password:
             self.session.auth = (user, password)
@@ -83,7 +84,6 @@ class Orthanc(DixelStorage):
         r = self.session.get(url)
         meta['SOPClassUID'] = DixelTools.DICOM_SOPS.get(r.json(), r.json())  # Text or return val
 
-
         return Dixel(dixel.id, meta=meta, level=dixel.level)
 
 
@@ -125,20 +125,23 @@ class OrthancProxy(Orthanc):
 
     def get(self, dixel, **kwargs):
 
-        dicom_level = str(dixel.level)
+        def find_series(dixel):
+            # Return an individual qid, aid
 
-        if not dixel.meta.get('qid'):
-            # TODO: Check if qid has expired?
-            # Haven't found this on remote yet
+            dicom_level = "series"
 
             def qdict(dixel):
-                qdict = {'PatientID': '',
+                qdict = {'PatientID': dixel.meta['PatientID'],
                          'StudyInstanceUID': '',
+                         'SeriesInstanceUID': dixel.meta.get('SeriesInstanceUID'),
+                         'SeriesDescription': '',
+                         'SeriesNumber': '',
                          'StudyDate': '',
                          'StudyTime': '',
-                         'AccessionNumber': '',
-                         'ModalitiesInStudy': 'CT'}
-                qdict.update(dixel.meta)
+                         'AccessionNumber': dixel.meta['AccessionNumber']}
+                if dixel.level == DicomLevel.STUDIES:
+                    qdict['ModalitiesInStudy'] = 'CT'
+                qdict.update(kwargs.get('qdict', {}))
                 return qdict
 
             query = qdict(dixel)
@@ -146,49 +149,84 @@ class OrthancProxy(Orthanc):
             data = {'Level': dicom_level,
                     'Query': query}
 
+            # self.logger.debug(pformat(data))
+
             url = '{0}/modalities/{1}/query'.format(self.url, self.remote_aet)
+            self.logger.debug(url)
 
             headers = {"Accept-Encoding": "identity",
                        "Accept": "application/json"}
 
-            # This is a sketchy call to Orthanc, so we do some error catching for review
+            # Does not like session.post for some reason!
             try:
-                r = self.session.post(url, data=data, headers=headers)
+                # r = self.session.post(url, json=data, headers=headers)
+                r = requests.post(url, json=data, headers=headers, auth=self.session.auth)
+                self.logger.debug(r.headers)
+                self.logger.debug(r.content)
+                dixel.meta['QID'] = r.json()["ID"]
             except ConnectionError as e:
                 self.logger.error(e)
                 self.logger.error(e.request.headers)
                 self.logger.error(e.request.body)
 
-            qid = r.json()["ID"]
-
-            url = '{0}/queries/{1}/answers'.format(self.url, qid)
+            url = '{0}/queries/{1}/answers'.format(self.url, dixel.meta['QID'])
             r = self.session.get(url)
+
             answers = r.json()
 
+            if len(answers)>1:
+                self.logger.warn('Retrieve too many candidate responses, using LAST')
+
             for aid in answers:
-                # Create children pre-dixels
-                url = '{0}/queries/{1}/answers/{2}/content'.format(self.url, qid, aid)
-                r = self.session.get(url)
+                url = '{0}/queries/{1}/answers/{2}/content?simplify'.format(self.url, dixel.meta['QID'], aid)
+                # r = self.session.get(url)
+                r = requests.get(url, auth=self.session.auth)
 
                 tags = r.json()
-                logging.debug(tags)
+                logging.debug(pformat(tags))
 
-                id = DixelTools.orthanc_id(tags['PatientID'], tags['StudyInstanceUID'])
-                meta = {'qid': qid,
-                        'aid': aid}
+                dixel.meta.update(tags)
+                dixel.meta['AID'] = aid
+                dixel.meta['OID'] = DixelTools.orthanc_id(tags['PatientID'],
+                                            tags['StudyInstanceUID'],
+                                            tags['SeriesInstanceUID'])
 
-                dixel.children.append(Dixel(id, level=DicomLevel.STUDIES, meta=meta))
+                # A proper series level ID
+                dixel.id = dixel.meta['OID']
 
-            dixel.meta['qid'] = qid
+            return dixel
 
-        else:
-            qid = dixel.meta.get('qid')
+        def retrieve_series(dixel):
+            if not kwargs.get('retrieve', False): return
 
-        retrieve = kwargs.get('retrieve', False)
-        if retrieve:
-            url = "{0}/queries/answers/{1}/retrieve".format(qid, aid)
+            oid = DixelTools.orthanc_id(dixel.meta['PatientID'],
+                                  dixel.meta['StudyInstanceUID'],
+                                  dixel.meta['SeriesInstanceUID'])
+
+            self.logger.debug('Expecting oid: {}'.format(oid))
+
+            url = "{}/queries/{}/answers/{}/retrieve".format(
+                self.url,
+                dixel.meta['QID'],
+                dixel.meta['AID'])
+            r = requests.post(url, auth=self.session.auth, data="DEATHSTAR")
+            self.logger.debug(r.content)
+
+            # Check series exists:
+            url = "{}/series/{}/shared-tags?simplify".format(self.url, oid)
             r = self.session.get(url)
-            dixel.id = r.json()['ID']
+            if r.status_code != 200:
+                raise Exception("Failed to c-move dixel w accession {}".format(dixel.meta['AccessionNumber']))
+
+            return None
+
+        # if not dixel.meta.get('QID') or not dixel.meta.get('AID'):
+        dixel = find_series(dixel)
+
+        if kwargs.get('retrieve'):
+            oid = retrieve_series(dixel)
+            if oid != dixel.id:
+                self.logger.warn('DID {} does not match OID {}'.format(dixel.id, oid))
 
         return dixel
 
@@ -196,8 +234,18 @@ class OrthancProxy(Orthanc):
         # Must _retrieve_ first
         self.get(dixel, retrieve=True)
         Orthanc.copy(self, dixel, dest)
+        self.delete(dixel)
 
-    def update(self, dixel):
-        # Must make request from PACS
-        return self.get(dixel)
+    def update(self, dixel, **kwargs):
+
+        if dixel.meta.get('AccessionNumber') and\
+                not dixel.meta.get("RetrieveAETitle"):
+            # run a PACS search for this study
+            d = self.get(dixel, **kwargs)
+        else:
+            d = Dixel(id=dixel.id, meta=dixel.meta, level=dixel.level)
+
+        return d
+
+
 

@@ -45,7 +45,7 @@ class DixelStorage(object):
     def put(self, dixel):
         raise NotImplementedError
 
-    def get(self, dixel):
+    def get(self, dixel, **kwargs):
         raise NotImplementedError
 
     def delete(self, dixel):
@@ -115,6 +115,10 @@ class DixelStorage(object):
     def copy_inventory(self, dest, lazy=False):
         worklist = self.inventory
         return self.copy_worklist(dest, worklist, lazy)
+
+    def get_worklist(self, worklist, **kwargs):
+        for dixel in worklist:
+            self.get(dixel, **kwargs)
 
     def delete_worklist(self, worklist):
         for dixel in worklist:

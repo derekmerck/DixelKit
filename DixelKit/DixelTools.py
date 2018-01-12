@@ -30,9 +30,12 @@ def load_csv(csv_file, secondary_id):
             items = csv.DictReader(f)
             for item in items:
                 # Need to create a unique identifier without having tags
-                #   1. Use AN if available
-                id = item.get('AccessionNumber')
-                #   2. If no AN, try PatientID + secondary_id (ie, Treatment Time)
+                #   1. Use OID if available
+                id = item.get('OID')
+                #   2. Use AN if available
+                if not id:
+                    id = item.get('AccessionNumber')
+                #   3. If no AN, try PatientID + secondary_id (ie, Treatment Time)
                 if not id:
                     id = item.get('PatientID') + item.get(secondary_id)
 
