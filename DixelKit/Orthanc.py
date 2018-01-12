@@ -116,6 +116,16 @@ class Orthanc(DixelStorage):
 
         return res
 
+    def exists(self, dixel):
+        url = "{}/{}/{}".format(self.url,
+                                str(dixel.level),
+                                dixel.id)
+        r = self.session.get(url)
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+
 
 class OrthancProxy(Orthanc):
 
@@ -139,8 +149,8 @@ class OrthancProxy(Orthanc):
                          'StudyDate': '',
                          'StudyTime': '',
                          'AccessionNumber': dixel.meta['AccessionNumber']}
-                if dixel.level == DicomLevel.STUDIES:
-                    qdict['ModalitiesInStudy'] = 'CT'
+                # if dixel.level == DicomLevel.STUDIES:
+                #     qdict['ModalitiesInStudy'] = 'CT'
                 qdict.update(kwargs.get('qdict', {}))
                 return qdict
 
@@ -202,8 +212,12 @@ class OrthancProxy(Orthanc):
             oid = DixelTools.orthanc_id(dixel.meta['PatientID'],
                                   dixel.meta['StudyInstanceUID'],
                                   dixel.meta['SeriesInstanceUID'])
+            dixel.meta['oid'] = oid
+            dixel.id = oid
 
             self.logger.debug('Expecting oid: {}'.format(oid))
+
+            if self.exists(dixel): return
 
             url = "{}/queries/{}/answers/{}/retrieve".format(
                 self.url,
@@ -212,21 +226,16 @@ class OrthancProxy(Orthanc):
             r = requests.post(url, auth=self.session.auth, data="DEATHSTAR")
             self.logger.debug(r.content)
 
-            # Check series exists:
-            url = "{}/series/{}/shared-tags?simplify".format(self.url, oid)
-            r = self.session.get(url)
-            if r.status_code != 200:
+            if not self.exists(dixel):
                 raise Exception("Failed to c-move dixel w accession {}".format(dixel.meta['AccessionNumber']))
 
-            return None
+            return dixel
 
         # if not dixel.meta.get('QID') or not dixel.meta.get('AID'):
         dixel = find_series(dixel)
 
         if kwargs.get('retrieve'):
-            oid = retrieve_series(dixel)
-            if oid != dixel.id:
-                self.logger.warn('DID {} does not match OID {}'.format(dixel.id, oid))
+            dixel = retrieve_series(dixel)
 
         return dixel
 
