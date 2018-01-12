@@ -215,6 +215,8 @@ class OrthancProxy(Orthanc):
             dixel.meta['oid'] = oid
             dixel.id = oid
 
+            dixel.level = DicomLevel.SERIES
+
             self.logger.debug('Expecting oid: {}'.format(oid))
 
             if self.exists(dixel): return
