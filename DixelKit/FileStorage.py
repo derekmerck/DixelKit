@@ -82,7 +82,8 @@ class FileStorage(DixelStorage):
                      'TransferSyntaxUID' : tags.file_meta.TransferSyntaxUID,
                      'MediaStorage'      : tags.file_meta.MediaStorageSOPClassUID,
                      'AccessionNumber'   : tags[0x0008, 0x0050].value,
-                     'HasPixels'         : 'PixelData' in tags
+                     'HasPixels'         : 'PixelData' in tags,
+                     'Dimensions'        : [tags[0x0028, 0x0010], tags[0x0028, 0x0011]]
                     }
 
             meta['id'] = DixelTools.orthanc_id(meta['PatientID'],
@@ -106,7 +107,7 @@ class FileStorage(DixelStorage):
             # Also check to confirm that this instance has pixels (not an SR) and is VR
             if dest.prefer_compressed and \
                     dixel.meta['HasPixels'] and \
-                    dixel.meta['Columns'] == dixel.meta['Rows'] and \
+                    dixel.meta['Dimensions'][0] == dixel.meta['Dimensions'][1] and \
                     "VR" in str(dixel.meta['TransferSyntaxUID']) and \
                     "SR" not in str(dixel.meta['MediaStorage']) and \
                     "Secondary" not in str(dixel.meta['MediaStorage']):
