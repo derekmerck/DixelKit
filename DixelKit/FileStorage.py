@@ -82,9 +82,13 @@ class FileStorage(DixelStorage):
                      'TransferSyntaxUID' : tags.file_meta.TransferSyntaxUID,
                      'MediaStorage'      : tags.file_meta.MediaStorageSOPClassUID,
                      'AccessionNumber'   : tags[0x0008, 0x0050].value,
-                     'HasPixels'         : 'PixelData' in tags,
-                     'Dimensions'        : [tags[0x0028, 0x0010], tags[0x0028, 0x0011]]
+                     'HasPixels'         : 'PixelData' in tags
                     }
+
+            try:
+                meta['Dimensions']=[tags[0x0028, 0x0010], tags[0x0028, 0x0011]]
+            except KeyError:
+                pass
 
             meta['id'] = DixelTools.orthanc_id(meta['PatientID'],
                                        meta['StudyInstanceUID'],
