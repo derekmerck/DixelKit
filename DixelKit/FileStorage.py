@@ -106,6 +106,7 @@ class FileStorage(DixelStorage):
             # Also check to confirm that this instance has pixels (not an SR) and is VR
             if dest.prefer_compressed and \
                     dixel.meta['HasPixels'] and \
+                    dixel.meta['Columns'] == dixel.meta['Rows'] and \
                     "VR" in str(dixel.meta['TransferSyntaxUID']) and \
                     "SR" not in str(dixel.meta['MediaStorage']) and \
                     "Secondary" not in str(dixel.meta['MediaStorage']):

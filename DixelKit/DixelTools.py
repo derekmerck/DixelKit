@@ -60,6 +60,43 @@ def save_csv(csv_file, worklist):
         for item in worklist:
             writer.writerow(item.meta)
 
+import os
+from bs4 import BeautifulSoup
+# Output all report data
+def save_text_corpus(out_dir, worklist):
+
+    for item in worklist:
+
+        # Clean up the report and anonymize
+        soup = BeautifulSoup(item.meta['Report'], "html.parser")  # Montage uses html syntax
+        raw_text = soup.get_text()
+
+        radcat = re.findall('RADCAT(\d)', raw_text)
+        if radcat:
+            item.meta['categories'][2] = max(radcat)
+
+        # Anonymize and blind to RADCAT
+        anon_text = re.sub("(^.*MD.*$|^.*MRN.*$|^.*DOS.*$|^.*RADCAT.*$|^.*Dr\..*$)",
+                           '', raw_text, 0, re.M)
+
+        # Each dixel report gets a file name with annotations for modality,
+        # body part, and finding
+        # /##/##/<study_oid>_study_region_finding.txt
+
+        study_oid = orthanc_id(item.meta['PatientID'], item.meta['StudyInstanceUID'])
+        suffix = "_".join(str(x) for x in item.meta['categories'])
+        fn = study_oid + "+" + suffix + ".txt"
+        # path = os.path.join(out_dir, study_oid[0:2], study_oid[2:4])
+        path = out_dir
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        full_path = os.path.join(path, fn)
+
+        with open(full_path, 'w') as f:
+            f.write(anon_text)
+
+
 """
 Patients are identified as the SHA-1 hash of their PatientID tag (0010,0020).
 Studies are identified as the SHA-1 hash of the concatenation of their PatientID tag (0010,0020) and their StudyInstanceUID tag (0020,000d).

@@ -116,8 +116,13 @@ class DixelStorage(object):
         worklist = self.inventory
         return self.copy_worklist(dest, worklist, lazy)
 
-    def get_worklist(self, worklist, **kwargs):
+    def get_worklist(self, worklist, lazy=False, **kwargs):
+
         for dixel in worklist:
+            if lazy:
+                if dixel in self.inventory:
+                    return
+
             self.get(dixel, **kwargs)
 
     def delete_worklist(self, worklist):
