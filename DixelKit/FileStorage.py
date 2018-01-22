@@ -86,7 +86,7 @@ class FileStorage(DixelStorage):
                     }
 
             try:
-                meta['Dimensions']=[tags[0x0028, 0x0010], tags[0x0028, 0x0011]]
+                meta['Dimensions']=[tags[0x0028, 0x0010].value, tags[0x0028, 0x0011].value]
             except KeyError:
                 pass
 
@@ -114,8 +114,8 @@ class FileStorage(DixelStorage):
             # and that it is square
             if dest.prefer_compressed and \
                     dixel.meta['HasPixels'] and \
-                    int(str(dixel.meta['Dimensions'][0])) % 8 == 0 and \
-                    int(str(dixel.meta['Dimensions'][1])) % 8 == 0 and \
+                    int(dixel.meta['Dimensions'][0]) % 8 == 0 and \
+                    int(dixel.meta['Dimensions'][1]) % 8 == 0 and \
                     "VR" in str(dixel.meta['TransferSyntaxUID']) and \
                     "SR" not in str(dixel.meta['MediaStorage']) and \
                     "Secondary" not in str(dixel.meta['MediaStorage']):
