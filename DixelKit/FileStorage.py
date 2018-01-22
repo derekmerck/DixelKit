@@ -108,10 +108,14 @@ class FileStorage(DixelStorage):
 
         if type(dest) == Orthanc and dixel.level == DicomLevel.INSTANCES:
 
+            # SQUARE is not right -- perhaps each dim divisible by 8?
+
             # Also check to confirm that this instance has pixels (not an SR) and is VR
+            # and that it is square
             if dest.prefer_compressed and \
                     dixel.meta['HasPixels'] and \
-                    dixel.meta['Dimensions'][0] == dixel.meta['Dimensions'][1] and \
+                    dixel.meta['Dimensions'][0] % 8 == 0 and \
+                    dixel.meta['Dimensions'][1] % 8 == 0 and \
                     "VR" in str(dixel.meta['TransferSyntaxUID']) and \
                     "SR" not in str(dixel.meta['MediaStorage']) and \
                     "Secondary" not in str(dixel.meta['MediaStorage']):
