@@ -19,8 +19,7 @@ DixelKit is a more generic and accessible toolkit for working with collections
 of such medical imaging related data and metadata.
 
 Dixel is a portmanteau for a "DICOM element" (or "DIANA element", a la pixel
-or voxel.) Pre-dixels are incomplete dixels, usually without enough information
-to assign a unique orthanc-style id.  
+or voxel.) 
 
 A DixelStorage is an inventory of dixels that supports CRUD access (put, 
 read/get/copy, update, delete).  Implemented DixelStorages include: `.dcm` files,
@@ -45,15 +44,16 @@ or
 - [requests](http://docs.python-requests.org/en/master/)
 - [splunk-sdk](http://dev.splunk.com/python)
 - [aenum](https://bitbucket.org/stoneleaf/aenum)
+- [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
 
 
 ### External requirements
 
 - [Grassroots DICOM][] (`gdcm`) for DICOM file pixel compression  
-  `brew install gdcm` on OSX  
-  `apt-get install libgcdm-tools` on Debian **
+  `$ brew install gdcm` on OSX  
+  `$ apt-get install libgcdm-tools` on Debian **
 - File magic (`libmagic`) for file typing  
-  `brew install libmagic` on OSX  (typically pre-installed on Linux)
+  `$ brew install libmagic` on OSX  (typically pre-installed on Linux)
 
 [Grassroots DICOM]: http://gdcm.sourceforge.net/wiki/index.php/Main_Page
 
@@ -86,6 +86,15 @@ See `tests.py` for more examples.
 >>> assert( size_z < size )
 ```
 
+Compression is performed only when the file: 1) has pixels (not a structured
+report) and 2) the pixel dimensions are evenly divisible by 8.  Otherwise the 
+uncompressed data is loaded.  This prevents `gdcmconv` from  throwing an error
+when the transfer syntax cannot be changed.
+
+**TODO**: This is not quite right: odd dimensions _can_ be compressed, 
+so so we need to do some more analysis of when `gdcmconv` fails on image
+data (ie, tilted gantry).
+
 ### Lazy upload metadata to Splunk from Orthanc
 
 ```python
@@ -107,7 +116,7 @@ ABC,       01012000,      CT Angiogram"""
 >>> orthanc.copy(worklist, Orthanc('my_project_host') )
 ```
 
-### Storage Instantiation with Text Secrets
+### Storage Instantiation with Secrets
 
 ```python
 secret_yaml="""
@@ -127,7 +136,10 @@ MIT
 
 ---
 
-** GDCM has no rpm available for RedHat 6, but can be compiled following <http://gdcm.sourceforge.net/wiki/index.php/Compilation> and <https://raw.githubusercontent.com/malaterre/GDCM/master/INSTALL.txt>
+** GDCM has no rpm available for RedHat 6, but can be compiled 
+following <http://gdcm.sourceforge.net/wiki/index.php/Compilation> and
+<https://raw.githubusercontent.com/malaterre/GDCM/master/INSTALL.txt>
+
 ```bash
 $ yum install cmake3 g++
 $ git clone https://github.com/malaterre/GDCM

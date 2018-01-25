@@ -27,13 +27,13 @@ class Montage(DixelStorage):
 
     # Assumes an AccessionNumber or PatientID and ReferenceTime field
     # Finds a MID (MontageID) if possible and fills in other patient and report data
-    def update(self, dixel, time_delta=0):
+    def update(self, dixel, time_delta=0, **kwargs):
 
         # if dixel.meta['mid']:
         #     # Already looked this exam up
         #     return dixel
 
-        qdict = {}
+        qdict = kwargs.get('qdict', {})
 
         PatientID = dixel.meta['PatientID']
         earliest, latest = DixelTools.daterange(dixel.meta['ReferenceTime'], time_delta)
@@ -73,15 +73,20 @@ class Montage(DixelStorage):
                 # If there is no AN, just use the first study returned
                 data = r[0]
 
+            suffix = kwargs.get('suffix', '')
+
             dixel.meta["Age"]             = data["patient_age"]
             dixel.meta["First Name"]      = data["patient_first_name"].capitalize()
             dixel.meta["Last Name"]       = data["patient_last_name"].capitalize()
-            dixel.meta["AccessionNumber"] = data["accession_number"]
-            dixel.meta["MID"]             = data["id"]                  # Montage ID
-            dixel.meta["Report"]          = data['text']                # Report text
-            dixel.meta["ExamCode"]        = data['exam_type']['code']   # IMG code
 
-            return Dixel(id=AccessionNumber, meta=dixel.meta, level=DicomLevel.STUDIES)
+            dixel.meta["AccessionNumber"+suffix] = data["accession_number"]
+            dixel.meta["MID"+suffix]             = data["id"]                  # Montage ID
+            dixel.meta["Report"+suffix]          = data['text']                # Report text
+            dixel.meta["ExamCode"+suffix]        = data['exam_type']['code']   # IMG code
+
+            return Dixel(id=dixel.meta["AccessionNumber"+suffix],
+                         meta=dixel.meta,
+                         level=DicomLevel.STUDIES)
 
         # No results
         else:
@@ -99,7 +104,7 @@ class Montage(DixelStorage):
 
             meta = {
                 'AccessionNumber': item[0]["accession_number"],
-                'mid'            : item[0]["id"],                # Montage ID
+                'PatientID'      : item[0]["id"],                # Montage ID
                 'ReportText'     : item[0]['text'],
                 'ExamType'       : item[0]['exam_type']['code']  # IMG code
             }

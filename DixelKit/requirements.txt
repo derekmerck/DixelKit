@@ -5,3 +5,4 @@ python-magic
 requests
 splunk-sdk
 aenum
+beautifulsoup4

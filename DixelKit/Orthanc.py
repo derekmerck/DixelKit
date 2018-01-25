@@ -35,7 +35,7 @@ class Orthanc(DixelStorage):
         r = self.session.get(url)
         return r.json()
 
-    def get(self, dixel):
+    def get(self, dixel, **kwargs):
         raise NotImplementedError
 
     def put(self, dixel):
@@ -64,7 +64,7 @@ class Orthanc(DixelStorage):
 
         self.logger.debug(pformat(r.json()))
 
-    def update(self, dixel):
+    def update(self, dixel, **kwargs):
 
         meta = dixel.meta.copy()
 

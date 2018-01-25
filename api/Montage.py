@@ -27,9 +27,9 @@ class Montage(object):
 def test_montage(source):
     qdict = {"q": "cta",
              "modality": 4,
-              "exam_type": [8683, 7713, 8766],
-              "start_date": "2016-11-17",
-              "end_date": "2016-11-19"}
+             "exam_type": [8683, 7713, 8766],
+             "start_date": "2016-11-17",
+             "end_date": "2016-11-19"}
     r = source.query(qdict)
     logging.debug(pformat(r))
 

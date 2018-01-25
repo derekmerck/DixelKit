@@ -1,8 +1,11 @@
 from hashlib import sha1
 import csv
+import os
+import re
+import logging
 from datetime import datetime, timedelta
 from dateutil import parser as dateutil_parser
-import re
+from bs4 import BeautifulSoup   # For report anonymization
 from Dixel import *
 
 from StructuredTags import simplify_tags
@@ -23,34 +26,36 @@ DICOM_TRANSFERSYNTAX_UID = {
 }
 
 
-def load_csv(csv_file, secondary_id):
-    s = set()
-    if csv_file:
-        with open(csv_file, 'rU') as f:
-            items = csv.DictReader(f)
-            for item in items:
-                # Need to create a unique identifier without having tags
-                #   1. Use OID if available
-                id = item.get('OID')
-                #   2. Use AN if available
-                if not id:
-                    id = item.get('AccessionNumber')
-                #   3. If no AN, try PatientID + secondary_id (ie, Treatment Time)
-                if not id:
-                    id = item.get('PatientID') + item.get(secondary_id)
+def load_csv(csv_file, secondary_id=None):
+    with open(csv_file, 'rU') as f:
+        items = csv.DictReader(f)
+        s = set()
+        for item in items:
+            # Need to create a unique identifier without having tags
+            #   1. Use OID if available
+            id = item.get('OID')
+            #   2. Use AN if available
+            if not id:
+                id = item.get('AccessionNumber')
+            #   3. If no AN, try PatientID + secondary_id (ie, Treatment Time)
+            if not id:
+                if not secondary_id:
+                    raise ValueError
+                id = item.get('PatientID') + item.get(secondary_id)
 
-                d = Dixel(id, level=DicomLevel.STUDIES, meta=item)
-                s.add(d)
+            d = Dixel(id, level=DicomLevel.STUDIES, meta=item)
+            s.add(d)
+        return s, items.fieldnames
 
-    return s
-
-def save_csv(csv_file, worklist):
+def save_csv(csv_file, worklist, _fieldnames=None):
 
     with open(csv_file, "w") as fp:
 
-        fieldnames=set()
+        fieldnames=_fieldnames or []
         for item in worklist:
-            fieldnames.update(item.meta.keys())
+            for k in item.meta.keys():
+                if k not in fieldnames:
+                    fieldnames.append(k)
 
         writer = csv.DictWriter(fp,
                                 fieldnames=fieldnames,
@@ -58,10 +63,39 @@ def save_csv(csv_file, worklist):
         writer.writeheader()
 
         for item in worklist:
-            writer.writerow(item.meta)
+            # Unicode!
+            meta = {k: unicode(v, errors='ignore').encode("utf-8", errors='ignore') for k, v in item.meta.iteritems()}
+            writer.writerow(meta)
 
-import os
-from bs4 import BeautifulSoup
+
+def report_extractions(dixel):
+
+    raw_text = dixel.meta['Report Text']
+
+    def find_it(k, expr):
+        match = re.findall(expr, raw_text)
+        if match:
+            logging.debug('{}: {}'.format(k, max(match)))
+            dixel.meta[k] = max(match)
+
+
+    extractions = {
+        'lungrads':   'Lung-RADS .*[Cc]ategory (\d)',
+        'radcat':     'RADCAT(\d)',
+        'ctdi':       'CTDIvol = (\d*\.*\d*).*mGy',
+        'dlp':        'DLP = (\d*\.*\d*).*mGy-cm',
+        'lungrads_s': 'Lung-RADS .*[Cc]ategory \d-?([Ss])',
+        'lungrads_c': 'Lung-RADS .*[Cc]ategory \d-?([Cc])',
+        'current_smoker': '([Cc]urrent smoker)',
+        'pack_years': '(\d*) pack[ -]year'
+    }
+
+    for k, v in extractions.iteritems():
+        find_it(k, v)
+
+    return dixel
+
+
 # Output all report data
 def save_text_corpus(out_dir, worklist):
 
@@ -81,7 +115,7 @@ def save_text_corpus(out_dir, worklist):
 
         # Each dixel report gets a file name with annotations for modality,
         # body part, and finding
-        # /##/##/<study_oid>_study_region_finding.txt
+        # out_dir/<study_oid>_study_region_finding.txt
 
         study_oid = orthanc_id(item.meta['PatientID'], item.meta['StudyInstanceUID'])
         suffix = "_".join(str(x) for x in item.meta['categories'])
@@ -155,8 +189,6 @@ def daterange(s_ref, s_delta, s_delta2=None):
     return earliest, latest
 
 
-import logging
-
 def test_hashing():
 
     ptid=   '80'
@@ -166,9 +198,6 @@ def test_hashing():
     id = orthanc_id(ptid, stuid, seruid, instuid)
     correct=  "c3a46d9f-20409d48-aee91522-34e3e1e9-958f34b2"
     assert( id==correct )
-
-
-
 
 
 if __name__=="__main__":
