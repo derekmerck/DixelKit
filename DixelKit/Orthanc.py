@@ -68,7 +68,11 @@ class Orthanc(DixelStorage):
 
         meta = dixel.meta.copy()
 
-        url = "{}/{}/{}/tags?simplify".format(self.url, str(dixel.level), dixel.id)
+        if dixel.level != "series":
+            url = "{}/{}/{}/tags?simplify".format(self.url, str(dixel.level), dixel.id)
+        else:
+            url = "{}/{}/{}/shared-tags?simplify".format(self.url, str(dixel.level), dixel.id)
+	    
         r = self.session.get(url)
 
         tags = r.json()
@@ -76,13 +80,14 @@ class Orthanc(DixelStorage):
 
         meta.update(tags)
 
-        url = "{}/{}/{}/metadata/TransferSyntaxUID".format(self.url, str(dixel.level), dixel.id)
-        r = self.session.get(url)
-        meta['TransferSyntaxUID'] = r.json()
+        if dixel.level == "instance":
+            url = "{}/{}/{}/metadata/TransferSyntaxUID".format(self.url, str(dixel.level), dixel.id)
+            r = self.session.get(url)
+            meta['TransferSyntaxUID'] = r.json()
 
-        url = "{}/{}/{}/metadata/SopClassUid".format(self.url, str(dixel.level), dixel.id)
-        r = self.session.get(url)
-        meta['SOPClassUID'] = DixelTools.DICOM_SOPS.get(r.json(), r.json())  # Text or return val
+            url = "{}/{}/{}/metadata/SopClassUid".format(self.url, str(dixel.level), dixel.id)
+            r = self.session.get(url)
+            meta['SOPClassUID'] = DixelTools.DICOM_SOPS.get(r.json(), r.json())  # Text or return val
 
         return Dixel(dixel.id, meta=meta, level=dixel.level)
 
