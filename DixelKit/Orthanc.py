@@ -120,7 +120,8 @@ class Orthanc(DixelStorage):
         url = "{}/{}/{}".format(self.url,
                                 str(dixel.level),
                                 dixel.id)
-        r = self.session.get(url)
+        r = requests.get(url, auth=self.session.auth)
+        # r = self.session.get(url)
         if r.status_code == 200:
             return True
         else:
@@ -233,6 +234,10 @@ class OrthancProxy(Orthanc):
 
             return dixel
 
+        # Check and see if you already have it in inventory
+        if self.exists(dixel):
+            return Orthanc.update(self, dixel)
+
         # if not dixel.meta.get('QID') or not dixel.meta.get('AID'):
         dixel = find_series(dixel)
 
@@ -254,7 +259,7 @@ class OrthancProxy(Orthanc):
             # run a PACS search for this study
             d = self.get(dixel, **kwargs)
         else:
-            d = Dixel(id=dixel.id, meta=dixel.meta, level=dixel.level)
+            d = dixel
 
         return d
 

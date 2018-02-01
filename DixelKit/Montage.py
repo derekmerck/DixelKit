@@ -73,6 +73,12 @@ class Montage(DixelStorage):
                 # If there is no AN, just use the first study returned
                 data = r[0]
 
+            # TODO: Should really take extractions as an argument
+            # dmap = kwargs.get('dmap', {})
+            #
+            # for k, v in dmap:
+            #     dixel.meta[k]
+
             suffix = kwargs.get('suffix', '')
 
             dixel.meta["Age"]             = data["patient_age"]
@@ -83,6 +89,11 @@ class Montage(DixelStorage):
             dixel.meta["MID"+suffix]             = data["id"]                  # Montage ID
             dixel.meta["Report"+suffix]          = data['text']                # Report text
             dixel.meta["ExamCode"+suffix]        = data['exam_type']['code']   # IMG code
+
+            # Try to find exam completed time
+            for event in data['events']:
+                if event['event_type'] == 5:
+                    dixel.meta["ExamCompleted"+suffix] = event['date']
 
             return Dixel(id=dixel.meta["AccessionNumber"+suffix],
                          meta=dixel.meta,

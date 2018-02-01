@@ -40,7 +40,7 @@ def load_csv(csv_file, secondary_id=None):
             #   3. If no AN, try PatientID + secondary_id (ie, Treatment Time)
             if not id:
                 if not secondary_id:
-                    raise ValueError
+                    raise ValueError("Needs AccessionNumber or MRN+Ref")
                 id = item.get('PatientID') + item.get(secondary_id)
 
             d = Dixel(id, level=DicomLevel.STUDIES, meta=item)
@@ -64,7 +64,9 @@ def save_csv(csv_file, worklist, _fieldnames=None):
 
         for item in worklist:
             # Unicode!
-            meta = {k: unicode(v, errors='ignore').encode("utf-8", errors='ignore') for k, v in item.meta.iteritems()}
+            meta = {k: u"{}".format(v).encode("utf-8", errors='ignore') for k, v in item.meta.iteritems()}
+
+            # meta = {k: unicode(v, errors='ignore').encode("utf-8", errors='ignore') for k, v in item.meta.iteritems()}
             writer.writerow(meta)
 
 
@@ -78,7 +80,6 @@ def report_extractions(dixel):
             logging.debug('{}: {}'.format(k, max(match)))
             dixel.meta[k] = max(match)
 
-
     extractions = {
         'lungrads':   'Lung-RADS .*[Cc]ategory (\d)',
         'radcat':     'RADCAT(\d)',
@@ -87,7 +88,8 @@ def report_extractions(dixel):
         'lungrads_s': 'Lung-RADS .*[Cc]ategory \d-?([Ss])',
         'lungrads_c': 'Lung-RADS .*[Cc]ategory \d-?([Cc])',
         'current_smoker': '([Cc]urrent smoker)',
-        'pack_years': '(\d*) pack[ -]year'
+        'pack_years': '(\d+)[ -]pack[ -]year',
+        'years_quit': 'quit(.*\d+) year[s?]'
     }
 
     for k, v in extractions.iteritems():
